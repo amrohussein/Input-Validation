@@ -7,8 +7,27 @@ A Python-based validation suite that runs as a **GitHub Actions workflow**, chec
 | ✅ Commit messages | Every `push` |
 | ✅ Branch names | Every `push` |
 | ✅ PR titles | `pull_request` open/edit/sync |
-| ✅ Issue fields | `issues` open/edit |
 | ✅ Code/file content | `pull_request` (changed files) |
+| ✅ Issue fields | `issues` open/edit |
+
+---
+
+## Project Structure
+
+```
+inputvalidation/
+│
+├── .github/
+│   └── workflows/
+│       └── validate.yml        # GitHub Actions workflow (runs all validation jobs)
+│
+├── scripts/
+│   └── validate.py             # Main validation script (commit, branch, PR, issue, code)
+│
+├── .gitignore                  # Python + secrets + IDE ignore rules
+├── LICENSE                     # MIT License — Amro Hussein
+└── README.md                   # Project documentation
+```
 
 ---
 
@@ -48,7 +67,7 @@ Same Conventional Commits format as commit messages.
 
 ### Code / File Content
 Scans changed files for:
-- Debug statements (`console.log`, `print("DEBUG`)
+- Debug statements (`console.log`, `print("DEBUG")`)
 - Untracked TODOs/FIXMEs (must reference `#issue-number`)
 - Hardcoded secrets (`password =`, `api_key =`, `secret =`)
 - Forbidden file types (`.env`, `.pem`, `.key`, etc.)
@@ -74,3 +93,9 @@ python scripts/validate.py issue "Login fails on mobile" --body "Steps to reprod
 # Validate specific files
 python scripts/validate.py code src/auth.py src/utils.py
 ```
+
+---
+
+## License
+
+MIT License — © 2026 Amro Hussein
