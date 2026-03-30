@@ -1,0 +1,128 @@
+name: Input Validation
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  issues:
+    types: [opened, edited]
+
+jobs:
+  # ──────────────────────────────────────────
+  # JOB 1 — Commit Message (every push)
+  # ──────────────────────────────────────────
+  validate-commit:
+    name: Commit Message
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate latest commit message
+        run: |
+          MSG=$(git log -1 --pretty=%s)
+          echo "Commit: $MSG"
+          python scripts/validate.py commit "$MSG"
+
+  # ──────────────────────────────────────────
+  # JOB 2 — Branch Name (every push)
+  # ──────────────────────────────────────────
+  validate-branch:
+    name: Branch Name
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate branch name
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          echo "Branch: $BRANCH"
+          python scripts/validate.py branch "$BRANCH"
+
+  # ──────────────────────────────────────────
+  # JOB 3 — PR Title (on pull_request events)
+  # ──────────────────────────────────────────
+  validate-pr:
+    name: PR Title
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "PR Title: $PR_TITLE"
+          python scripts/validate.py pr "$PR_TITLE"
+
+  # ──────────────────────────────────────────
+  # JOB 4 — Code / File Content (on PRs)
+  # ──────────────────────────────────────────
+  validate-code:
+    name: Code Content
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Get changed files
+        id: changed
+        run: |
+          FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | tr '\n' ' ')
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+          echo "Changed files: $FILES"
+
+      - name: Validate code content
+        env:
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+        run: |
+          python scripts/validate.py code --from-env
+
+  # ──────────────────────────────────────────
+  # JOB 5 — Issue Fields (on issue events)
+  # ──────────────────────────────────────────
+  validate-issue:
+    name: Issue Fields
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Write issue body to file
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: echo "$ISSUE_BODY" > /tmp/issue_body.txt
+
+      - name: Validate issue fields
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          python scripts/validate.py issue "$ISSUE_TITLE" \
+            --body-file /tmp/issue_body.txt
